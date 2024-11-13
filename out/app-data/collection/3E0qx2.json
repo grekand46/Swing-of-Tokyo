@@ -1,0 +1,7 @@
+{
+    "name": "Showdown",
+    "botNames": ["Kirby", "Table Flip"],
+    "botClasses": ["PlayerKirby", "PlayerTableFlip"],
+    "games": 10,
+    "pause": true
+}

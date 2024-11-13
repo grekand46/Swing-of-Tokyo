@@ -1,0 +1,7 @@
+{
+    "name": "Naive & Naive++",
+    "botNames": ["Naive", "Naive++"],
+    "botClasses": ["PlayerNaive", "NaivePlusPlus"],
+    "games": 100,
+    "pause": false
+}
