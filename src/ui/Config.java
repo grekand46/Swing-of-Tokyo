@@ -117,6 +117,7 @@ public class Config {
         List<JsonString> classes = data.get(JsonArray.class, "botClasses").array(JsonString.class);
         for (int i = 0; i < names.size(); i++) {
             monsters.add(new MonsterData(names.get(i).stringValue(), classes.get(i).stringValue()));
+            nameSet.add(names.get(i).stringValue());
         }
     }
 
@@ -143,8 +144,14 @@ public class Config {
     }
 
     private Set<String> nameSet = new HashSet<>();
+
+    public MonsterData addMonster() {
+        MonsterData toAdd = new MonsterData(getDefaultName(), "PlayerNaive");
+        addMonster(toAdd);
+        return toAdd;
+    }
+
     public void addMonster(MonsterData md) {
-        if (md == null) md = new MonsterData(getDefaultName(), "PlayerNaive");
         nameSet.add(md.getName());
         monsters.add(md);
     }
@@ -157,7 +164,7 @@ public class Config {
         return monsters;
     }
 
-    private String getDefaultName() {
+    public String getDefaultName() {
         int i = 0;
         while (true) {
             String req = "Random Monster " + i;

@@ -45,6 +45,10 @@ public class ClientArea extends JPanel {
         centralPanel.clear();
         repaint();
     }
+
+    public void newGame() {
+        centralPanel.newGame();
+    }
 }
 
 class LeftPanel extends JPanel {
@@ -74,7 +78,7 @@ class LeftPanel extends JPanel {
         playButton.setText("Play");
         playButton.setEnabled(false);
         playButton.addActionListener(e -> {
-            System.out.println("eu");
+            root.newGame();
         });
         add(playButton);
         
@@ -103,7 +107,7 @@ class LeftPanel extends JPanel {
 class CentralPanel extends JPanel {
     private JTextField gameField = new CustomTextField(true);
     private ToggleSwitch pauseToggle = new ToggleSwitch();
-    private MonsterEntry.Group monsterLine = new MonsterEntry.Group();
+    private MonsterEntry.Group monsterLine = new MonsterEntry.Group(null);
     private BorderLayout containerLayout = new BorderLayout();
     private JPanel container = new JPanel(containerLayout);
     private JPanel box = new JPanel();
@@ -118,7 +122,6 @@ class CentralPanel extends JPanel {
         JLabel monsterLabel = new JLabel("Monsters: ");
         JPanel gameLine = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JPanel pauseLine = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        
 
         gameField.setFont(f);
         gameField.setColumns(4);
@@ -131,7 +134,8 @@ class CentralPanel extends JPanel {
                     gameField.setFocusable(false);
                     gameField.setFocusable(true);
                     try {
-                        Integer.parseInt(gameField.getText().replace(",", ""));
+                        int num = Integer.parseInt(gameField.getText().replace(",", ""));
+                        internal.setGames(num);
                     }
                     catch (Exception ex) {
                         gameField.setText("1");
@@ -161,6 +165,9 @@ class CentralPanel extends JPanel {
         monsterLabel.setForeground(Color.WHITE);
         monsterLabel.setFont(f.deriveFont(Font.BOLD));
         Util.clearBG(container, box, gameLine, pauseLine, monsterLine);
+        pauseToggle.addActionListener(e -> {
+            internal.setPause(pauseToggle.isEnabled());
+        });
     }
 
     private boolean loaded = false;
@@ -168,9 +175,11 @@ class CentralPanel extends JPanel {
     public void load(Config cfg) {
         loaded = true;
         internal = cfg;
+        monsterLine.setRoot(cfg);
         gameField.setText("" + cfg.getGames());
         pauseToggle.setEnabled(cfg.getPause());
         monsterLine.removeAll();
+        monsterLine.init();
         for (MonsterData data : cfg.getMonsters())
             monsterLine.add(new MonsterEntry(data));
         add(container);
@@ -207,6 +216,11 @@ class CentralPanel extends JPanel {
         Dimension size = new Dimension(getWidth(), getHeight());
         container.setPreferredSize(size);
         revalidate();
+    }
+
+    public void newGame() {
+        GameWindow win = new GameWindow(internal);
+        win.setVisible(true);
     }
     
 }

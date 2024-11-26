@@ -111,7 +111,7 @@ public class CustomButton extends JPanel {
             borderWidth, 
             borderWidth, 
             getWidth() - 2 * borderWidth, 
-            getWidth() - 2 * borderWidth, 
+            getHeight() - 2 * borderWidth, 
             borderRadius - borderWidth
         );
     }
