@@ -65,7 +65,7 @@ public class JsonParser {
             arr.array().forEach(elem -> cycleCheckRecurse(record, elem));
         }
         else if (element instanceof JsonObject obj) {
-            obj.values().forEach(elem -> cycleCheckRecurse(record, element));
+            obj.values().forEach(elem -> cycleCheckRecurse(record, elem));
         }
     }
 
@@ -222,7 +222,7 @@ public class JsonParser {
         if (literal.equals("true")) return JsonLiteral.TRUE;
         if (literal.equals("false")) return JsonLiteral.FALSE;
         if (literal.equals("null")) return JsonLiteral.NULL;
-        throw new IllegalArgumentException("Bad literal");
+        throw new IllegalArgumentException("Bad literal: \"" + literal + "\"");
     }
 
     private void bad(String str) {
@@ -277,6 +277,12 @@ public class JsonParser {
         current++;
         if (end()) bad("array");
         List<JsonElement> elements = new ArrayList<>();
+        skipSpaces();
+        if (end()) bad("array");
+        if (getChar() == ']') {
+            current++;
+            return new JsonArray(new JsonElement[0]);
+        }
         while (true) {
             skipSpaces();
             elements.add(parseElement());
@@ -299,6 +305,12 @@ public class JsonParser {
         current++;
         if (end()) bad("object");
         JsonObject result = new JsonObject();
+        skipSpaces();
+        if (end()) bad("object");
+        if (getChar() == '}') {
+            current++;
+            return result;
+        }
         while (true) {
             skipSpaces();
             String key = parseString().stringValue();

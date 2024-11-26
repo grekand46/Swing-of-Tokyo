@@ -3,6 +3,8 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.util.Random;
 
+import javax.swing.JPanel;
+
 public class Util {
     @FunctionalInterface
     public static interface TriConsumer<T, U, V> {
@@ -78,4 +80,12 @@ public class Util {
         if (dotIndex == -1) return name;
         return name.substring(0, dotIndex);
     }
+
+    public static void clearBG(javax.swing.JPanel... panels) {
+        for (javax.swing.JPanel panel : panels) {
+            panel.setOpaque(false);
+            panel.setBackground(new Color(0, 0, 0, 0));
+        }
+    }
+
 }

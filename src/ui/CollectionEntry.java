@@ -4,13 +4,8 @@ import java.awt.event.*;
 import java.awt.geom.Path2D;
 import java.util.*;
 import javax.swing.*;
-import java.io.*;
-import java.nio.file.Files;
-
-import json.*;
 
 public class CollectionEntry extends JPanel {
-    private static JsonParser jsonParser = new JsonParser();
     public static class Group extends JPanel {
         private static int entryHeight = 30;
         public static int getEntryHeight() { return entryHeight; }
@@ -28,18 +23,9 @@ public class CollectionEntry extends JPanel {
             setLayout(null);
             onResize();
             init();
-            File collection = new File("out/app-data/collection");
-            File[] battles = collection.listFiles();
-            for (File battle : battles) {
-                try {
-                    String filename = Util.fileNameNoExtension(battle.getName());
-                    JsonObject battleData = (JsonObject) jsonParser.parse(Files.readString(battle.toPath()));
-                    CollectionEntry entry = new CollectionEntry(((JsonString) battleData.get("name")).stringValue());
-                    entry.filename = filename;
-                    addEntry(entry);
-                } catch (IOException e) {
-                    System.out.println("io err");
-                }
+            for (Config cfg : Config.all()) {
+                CollectionEntry entry = new CollectionEntry(cfg);
+                addEntry(entry);
             }
         }
 
@@ -58,7 +44,7 @@ public class CollectionEntry extends JPanel {
             for (int i = 1; i < Integer.MAX_VALUE; i++) {
                 String name = "Unnamed " + i;
                 if (entryMap.containsKey(name)) continue;
-                CollectionEntry entry = new CollectionEntry(name);
+                CollectionEntry entry = new CollectionEntry(Config.create(name));
                 entry.setAutoEdit(true);
                 addEntry(entry);
                 return;
@@ -69,14 +55,14 @@ public class CollectionEntry extends JPanel {
             entry.group = this;
             add(entry);
             entries.add(entry);
-            entryMap.put(entry.name, entry);
+            entryMap.put(entry.config.getName(), entry);
             onResize();
         }
 
         public void removeEntry(CollectionEntry entry) {
             remove(entry);
             entries.remove(entry);
-            entryMap.remove(entry.name);
+            entryMap.remove(entry.config.getName());
             if (entry == selected) root.unloadConfig();
             selected = null;
             onResize();
@@ -85,23 +71,25 @@ public class CollectionEntry extends JPanel {
         private CollectionEntry selected = null;
         public void select(CollectionEntry entry) {
             if (selected != null) selected.selected = false;
+            if (editing != entry && editing != null) editing.endEdit(true);
             entry.selected = true;
             selected = entry;
 
-            root.loadConfig(null);
+            root.loadConfig(entry.config);
         }
 
         private void renameEntry(CollectionEntry entry, String name) {
             name = name.stripTrailing();
             if (entryMap.get(name) != null) return;
-            entryMap.remove(entry.name);
-            entry.name = name;
+            entryMap.remove(entry.config.getName());
+            entry.config.setName(name);
             entryMap.put(name, entry);
         }
 
         private CollectionEntry editing;
         private void editNotify(CollectionEntry entry) {
             if (editing != null) editing.endEdit();
+            select(entry);
             editing = entry;
         }
 
@@ -144,17 +132,16 @@ public class CollectionEntry extends JPanel {
         }
     }
 
-    private String name;
-    private String filename;
     private boolean highlighted = false;
     private boolean selected = false;
     private Group group = null;
     private CustomButton deleteButton;
     private CustomButton renameButton;
-    public CollectionEntry(String name) {
+    private Config config;
+    public CollectionEntry(Config config) {
         super();
         setLayout(null);
-        this.name = name;
+        this.config = config;
         deleteButton = new CustomButton(Color.BLACK, Definitions.LEFT_PANEL) {
             @Override
             public void paintComponent(Graphics g) {
@@ -170,6 +157,7 @@ public class CollectionEntry extends JPanel {
         };
         deleteButton.addActionListener(e -> {
             group.removeEntry(this);
+            config.delete();
         });
         deleteButton.setHover(new Cursor(Cursor.DEFAULT_CURSOR));
         deleteButton.setRadius(5);
@@ -210,7 +198,8 @@ public class CollectionEntry extends JPanel {
         textbox.setSelectedTextColor(Definitions.LEFT_PANEL);
         textbox.setSelectionColor(Color.WHITE);
         textbox.setFont(titleFont);
-        textbox.setBorder(BorderFactory.createLineBorder(Color.GRAY, 2));
+
+        textbox.setBorder(BorderFactory.createEmptyBorder(2, 2, 2, 2));
         textbox.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
@@ -275,7 +264,7 @@ public class CollectionEntry extends JPanel {
         renameButton.setBackground(bg);
         Util.fillRoundRect(g2, 0, 0, getWidth(), getHeight(), 5);
         String icon = "VS.";
-        String title = name;
+        String title = config.getName();
         
         FontMetrics fm = g2.getFontMetrics(iconFont);
         g2.setColor(Definitions.ICON);
@@ -306,17 +295,23 @@ public class CollectionEntry extends JPanel {
         renameButton.setBounds(getWidth() - 2 * size - 10, 5, size, size);
     }
 
-    private final JTextField textbox = new JTextField();
+    private final JTextField textbox = new CustomTextField();
     private boolean editing = false;
     private void edit() { edit(true); }
     private void edit(boolean repaint) {
         if (editing) return;
         group.editNotify(this);
         editing = true;
-        textbox.setText(name);
+        textbox.setText(config.getName());
         textbox.setBounds(titleX, 3, 100, getHeight() - 6);
         add(textbox);
         textbox.grabFocus();
+        textbox.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusLost(FocusEvent e) {
+                endEdit();
+            }
+        });
         if (repaint) repaint();
     }
     private void endEdit() { endEdit(false); }

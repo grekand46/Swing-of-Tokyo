@@ -1,6 +1,8 @@
 package ui;
 import java.awt.*;
 import java.awt.event.*;
+import java.util.concurrent.Flow;
+
 import javax.swing.*;
 
 public class ClientArea extends JPanel {
@@ -34,12 +36,14 @@ public class ClientArea extends JPanel {
 
     public void loadConfig(Config config) {
         leftPanel.setPlayEnabled(true);
-        centralPanel.setLoaded(true);
+        centralPanel.load(config);
+        repaint();
     }
 
     public void unloadConfig() {
         leftPanel.setPlayEnabled(false);
-        centralPanel.setLoaded(false);
+        centralPanel.clear();
+        repaint();
     }
 }
 
@@ -69,6 +73,9 @@ class LeftPanel extends JPanel {
         playButton = new CustomButton(Color.BLACK, new Color(200, 255, 50));
         playButton.setText("Play");
         playButton.setEnabled(false);
+        playButton.addActionListener(e -> {
+            System.out.println("eu");
+        });
         add(playButton);
         
     }
@@ -94,15 +101,84 @@ class LeftPanel extends JPanel {
 }
 
 class CentralPanel extends JPanel {
+    private JTextField gameField = new CustomTextField(true);
+    private ToggleSwitch pauseToggle = new ToggleSwitch();
+    private MonsterEntry.Group monsterLine = new MonsterEntry.Group();
+    private BorderLayout containerLayout = new BorderLayout();
+    private JPanel container = new JPanel(containerLayout);
+    private JPanel box = new JPanel();
+
     CentralPanel() {
         super();
+        setLayout(new FlowLayout(FlowLayout.LEFT));
+        Font f = new Font("SF Pro Display", Font.PLAIN, 20);
         setOpaque(false);
+        JLabel gameLabel = new JLabel("Games: ");
+        JLabel pauseLabel = new JLabel("Pause: ");
+        JLabel monsterLabel = new JLabel("Monsters: ");
+        JPanel gameLine = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JPanel pauseLine = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        
+
+        gameField.setFont(f);
+        gameField.setColumns(4);
+        gameField.setHorizontalAlignment(SwingConstants.CENTER);
+        gameField.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                int code = e.getKeyCode();
+                if (code == KeyEvent.VK_ENTER) {
+                    gameField.setFocusable(false);
+                    gameField.setFocusable(true);
+                    try {
+                        Integer.parseInt(gameField.getText().replace(",", ""));
+                    }
+                    catch (Exception ex) {
+                        gameField.setText("1");
+                    }
+                }
+            }
+        });
+        box.setLayout(new BoxLayout(box, BoxLayout.PAGE_AXIS));
+        container.add(box, BorderLayout.NORTH);
+        box.add(gameLine);
+        box.add(pauseLine);
+        {
+            JPanel wrapper = new JPanel(new FlowLayout(FlowLayout.LEFT));
+            Util.clearBG(wrapper);
+            wrapper.add(monsterLabel);
+            box.add(wrapper);
+        }
+        container.add(monsterLine, BorderLayout.CENTER);
+        gameLine.add(gameLabel);
+        gameLine.add(gameField);
+        gameLabel.setForeground(Color.WHITE);
+        gameLabel.setFont(f.deriveFont(Font.BOLD));
+        pauseLine.add(pauseLabel);
+        pauseLine.add(pauseToggle);
+        pauseLabel.setForeground(Color.WHITE);
+        pauseLabel.setFont(f.deriveFont(Font.BOLD));
+        monsterLabel.setForeground(Color.WHITE);
+        monsterLabel.setFont(f.deriveFont(Font.BOLD));
+        Util.clearBG(container, box, gameLine, pauseLine, monsterLine);
     }
 
     private boolean loaded = false;
-    public void setLoaded(boolean b) {
-        loaded = b;
-        repaint();
+    private Config internal;
+    public void load(Config cfg) {
+        loaded = true;
+        internal = cfg;
+        gameField.setText("" + cfg.getGames());
+        pauseToggle.setEnabled(cfg.getPause());
+        monsterLine.removeAll();
+        for (MonsterData data : cfg.getMonsters())
+            monsterLine.add(new MonsterEntry(data));
+        add(container);
+        revalidate();
+    }
+    public void clear() {
+        loaded = false;
+        removeAll();
     }
 
     @Override
@@ -111,10 +187,13 @@ class CentralPanel extends JPanel {
         Util.setRH(g2d);
         g2d.setColor(Definitions.BACKGROUND);
         g2d.fillRect(0, 0, getWidth(), getHeight());
-        if (loaded) return;
+        if (!loaded) paintNone(g2d);
+    }
+
+    private void paintNone(Graphics2D g2d) {
         String message = "Create or select a battle";
         Font font = new Font("SF Pro Display", Font.BOLD, 25);
-        FontMetrics metrics = g.getFontMetrics(font);
+        FontMetrics metrics = g2d.getFontMetrics(font);
         int h = metrics.getAscent() + metrics.getDescent();
         int y = (getHeight() + h) / 2;
         int w = metrics.stringWidth(message);
@@ -125,7 +204,9 @@ class CentralPanel extends JPanel {
     }
 
     public void onResize() {
-        repaint();
+        Dimension size = new Dimension(getWidth(), getHeight());
+        container.setPreferredSize(size);
+        revalidate();
     }
     
 }

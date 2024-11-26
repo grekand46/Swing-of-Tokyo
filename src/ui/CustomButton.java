@@ -24,6 +24,8 @@ public class CustomButton extends JPanel {
     }
 
     private Color background;
+    private Color borderColor;
+    private int borderWidth;
     private boolean disabled = false;
     private boolean hovered = false;
     private boolean clicked = false;
@@ -84,6 +86,14 @@ public class CustomButton extends JPanel {
         background = bg;
     }
 
+    public void setBorderColor(Color c) {
+        borderColor = c;
+    }
+
+    public void setBorderWidth(int x) {
+        borderWidth = x;
+    }
+
     @Override
     public void paintComponent(Graphics graphics) {
         Graphics2D g = (Graphics2D) graphics;
@@ -91,8 +101,19 @@ public class CustomButton extends JPanel {
         Color bg = disabled ? Definitions.DISABLED : 
             clicked ? Util.lighten(background, 0.15) : 
             hovered ? Util.lighten(background, 0.08) : background;
+        if (borderWidth > 0) {
+            g.setColor(borderColor);
+            Util.fillRoundRect(g, 0, 0, getWidth(), getHeight(), borderRadius);
+        }
         g.setColor(bg);
-        Util.fillRoundRect(g, 0, 0, getWidth(), getHeight(), borderRadius);
+        Util.fillRoundRect(
+            g, 
+            borderWidth, 
+            borderWidth, 
+            getWidth() - 2 * borderWidth, 
+            getWidth() - 2 * borderWidth, 
+            borderRadius - borderWidth
+        );
     }
 
     private java.util.List<ActionListener> actionListeners = new ArrayList<>();

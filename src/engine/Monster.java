@@ -23,6 +23,13 @@ public class Monster {
         if (fame > TARGET_FAME) fame = TARGET_FAME;
     }
 
+    public int getHealth() {
+        return health;
+    }
+    public int getFame() {
+        return fame;
+    }
+
     void reset() {
         fame = 0;
         health = 10;

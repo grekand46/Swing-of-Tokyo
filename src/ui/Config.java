@@ -31,21 +31,36 @@ public class Config {
         }
     }
 
+    public static List<Config> all() {
+        List<Config> res = new ArrayList<>();
+        res.addAll(cache.values());
+        return res;
+    }
+
     public static Config fromExisting(String id) {
         return cache.get(id);
     }
 
-    public static Config create() {
+    public static Config create(String name) {
         String id = Util.randomAlphaNum(6);
         while (cache.containsKey(id)) {
             id = Util.randomAlphaNum(6);
         }
         JsonObject obj = new JsonObject();
+        obj.set("name", new JsonString(name));
         obj.set("games", new JsonNumber(1));
         obj.set("botNames", new JsonArray());
         obj.set("botClasses", new JsonArray());
         obj.set("pause", JsonLiteral.FALSE);
-        return new Config(id, obj);
+        Config res = new Config(id, obj);
+        cache.put(id, res);
+        return res;
+    }
+
+    public static void saveAll() {
+        for (Config cfg : cache.values()) {
+            cfg.save();
+        }
     }
 
     public void delete() {
@@ -55,6 +70,7 @@ public class Config {
     }
 
     private static boolean isValid(JsonObject data) {
+        if (!(data.get("name") instanceof JsonString)) return false;
         if (data.get("games") instanceof JsonNumber games) {
             int v = games.intValue();
             if (v < 1 || v > 1000) return false;
@@ -87,21 +103,29 @@ public class Config {
     }
 
     private String id;
+    private String battleName;
     private int games;
     private boolean pause;
-    private List<String> names = new ArrayList<>();
-    private List<String> classes = new ArrayList<>();
+    private List<MonsterData> monsters = new ArrayList<>();
 
     private Config(String id, JsonObject data) {
         this.id = id;
+        battleName = data.get(JsonString.class, "name").stringValue();
         games = data.get(JsonNumber.class, "games").intValue();
         pause = data.get("pause") == JsonLiteral.TRUE;
-        for (JsonString elem : data.get(JsonArray.class, "botNames").array(JsonString.class)) {
-            names.add(elem.stringValue());
+        List<JsonString> names = data.get(JsonArray.class, "botNames").array(JsonString.class);
+        List<JsonString> classes = data.get(JsonArray.class, "botClasses").array(JsonString.class);
+        for (int i = 0; i < names.size(); i++) {
+            monsters.add(new MonsterData(names.get(i).stringValue(), classes.get(i).stringValue()));
         }
-        for (JsonString elem : data.get(JsonArray.class, "botClasses").array(JsonString.class)) {
-            classes.add(elem.stringValue());
-        }
+    }
+
+    public void setName(String str) {
+        battleName = str;
+    }
+
+    public String getName() {
+        return battleName;
     }
 
     public void setGames(int n) {
@@ -118,20 +142,45 @@ public class Config {
         return pause;
     }
 
-    public void addMonster() {
-        
+    private Set<String> nameSet = new HashSet<>();
+    public void addMonster(MonsterData md) {
+        if (md == null) md = new MonsterData(getDefaultName(), "PlayerNaive");
+        nameSet.add(md.getName());
+        monsters.add(md);
     }
-    public void editMonster(String name, String cls) {
 
+    public void removeMonster(MonsterData md) {
+        if (monsters.remove(md)) nameSet.remove(md.getName());
     }
 
+    public List<MonsterData> getMonsters() {
+        return monsters;
+    }
+
+    private String getDefaultName() {
+        int i = 0;
+        while (true) {
+            String req = "Random Monster " + i;
+            if (!nameSet.contains(req)) return req;
+            i++;
+        }
+    }
 
     public void save() {
         File file = new File(path + "/" + id + ".json");
         JsonObject obj = new JsonObject();
+        obj.set("name", new JsonString(battleName));
         obj.set("games", new JsonNumber(games));
-        obj.set("botNames", new JsonArray(names.stream().map(JsonString::new).toList()));
-        obj.set("botClasses", new JsonArray(classes.stream().map(JsonString::new).toList()));
+        obj.set("botNames", new JsonArray(
+            monsters.stream()
+                .map(m -> new JsonString(m.getName()))
+                .toList()
+        ));
+        obj.set("botClasses", new JsonArray(
+            monsters.stream()
+                .map(m -> new JsonString(m.getCls()))
+                .toList()
+        ));
         obj.set("pause", pause ? JsonLiteral.TRUE : JsonLiteral.FALSE);
         try {
             FileWriter writer = new FileWriter(file, false);

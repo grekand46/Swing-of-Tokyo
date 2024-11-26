@@ -38,7 +38,7 @@ public class JsonObject implements JsonElement {
 
         String expanded = map.keySet().stream()
             .map(key -> padding + paddingUnit + '\"' + key + '\"' + ": " + map.get(key).serialize(level + 1))
-            .collect(Collectors.joining(", "));
+            .collect(Collectors.joining(",\n"));
         return "{\n" + expanded + "\n" + padding + "}";
     }
 
